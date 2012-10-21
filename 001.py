@@ -13,7 +13,7 @@ def solve():
 	MAX = 1000
 	SUM = 0
 
-	for elem in [x for x in range(1000) if (x%3==0 or x%5==0)]:
+	for elem in [x for x in range(MAX) if (x%3==0 or x%5==0)]:
 		SUM += elem
 	return SUM
 
