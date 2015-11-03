@@ -9,20 +9,20 @@ from operator import itemgetter
 # game constants
 ROUNDS = 1000
 HANDS_FILE = '054.txt'
-PLAYER_ONE = PLAYER_TWO = 0
+PLAYER_ONE = PLAYER_TWO = TIE = 0
 HAND_SIZE = 5
 
 # scores
-HighCard = 1
-OnePair = 2
-TwoPairs = 3
-ThreeKind = 4
-Straight = 5
-Flush = 6
-FullHouse = 7
-FourKind = 8
-StraightFlush = 9
-RoyalFlush = 10
+HighCard = 100
+OnePair = 200
+TwoPairs = 300
+ThreeKind = 400
+Straight = 500
+Flush = 600
+FullHouse = 700
+FourKind = 800
+StraightFlush = 900
+RoyalFlush = 1000
 
 mapping = {
     'A': 14,
@@ -40,7 +40,6 @@ def read_rounds():
     with open(HANDS_FILE, 'r') as f:
         for line in f:
             lines.append(line.rstrip('\n').split(' '))
-            print 'Read %s' % line.rstrip('\n')
     return lines
 
 
@@ -142,7 +141,7 @@ class Hand:
     def _straight(self):
         obj, score = (None, 0)
         groups = []
-        for k, g in groupby(enumerate([c[0] for c in self.hand]), lambda (i, x): i-x):
+        for k, g in groupby(enumerate(sorted([c[0] for c in self.hand])), lambda (i, x): i-x):
             groups.append(map(itemgetter(1), g))
         if len(groups) == 1:
             if len(groups[0]) == HAND_SIZE:
@@ -153,12 +152,14 @@ class Hand:
         return score, obj
 
     def _flush(self):
-        score = 0
+        obj, score = (None, 0)
         seed = [c[1] for c in self.hand]
         if len(set(seed)) == 1:
+            obj = {}
+            obj['card_values'] = sorted([c[0] for c in self.hand])
             score = Flush
             self.score_name = 'Flush'
-        return score, None
+        return score, obj
 
     def _full_house(self):
         obj, score = (None, 0)
@@ -182,7 +183,7 @@ class Hand:
     def _four_kind(self):
         obj, score = (None, 0)
         groups = []
-        for k, g in groupby(enumerate([c[0] for c in self.hand]), lambda (i, x): i-x):
+        for k, g in groupby(enumerate(sorted([c[0] for c in self.hand])), lambda (i, x): i-x):
             groups.append(map(itemgetter(1), g))
         for group in groups:
             if len(group) == 4:
@@ -197,7 +198,7 @@ class Hand:
         seed = [c[1] for c in self.hand]
         groups = []
         if len(set(seed)) == 1:
-            for k, g in groupby(enumerate([c[0] for c in self.hand]), lambda (i, x): i-x):
+            for k, g in groupby(enumerate(sorted([c[0] for c in self.hand])), lambda (i, x): i-x):
                 groups.append(map(itemgetter(1), g))
             if len(groups) == 1:
                 if len(groups[0]) == HAND_SIZE:
@@ -209,13 +210,14 @@ class Hand:
         return score, obj
 
     def _royal_flush(self):
-        score = 0
-        values = [c[0] for c in self.hand]
+        obj, score = (None, 0)
+        values = sorted([c[0] for c in self.hand])
         seed = [c[1] for c in self.hand]
-        if len(set(seed)) == 1 and sorted(values) == sorted([10, 11, 12, 13, 14]):
+        if len(set(seed)) == 1 and values == sorted([10, 11, 12, 13, 14]):
+            obj = {'card_values': values}
             score = RoyalFlush
             self.score_name = 'Royal Flush'
-        return score, None
+        return score, obj
 
 
 class Game:
@@ -242,7 +244,6 @@ class Game:
         p2, o2 = h2.score()
 
         if p1 == p2:
-            hand_range = HAND_SIZE
             # compare high cards
             cards1 = cards2 = None
             if o1 and o2:
@@ -253,7 +254,9 @@ class Game:
                 hand_range = len(cards1)
                 high1 = sorted(cards1, reverse=True)
                 high2 = sorted(cards2, reverse=True)
-            else:
+
+            if high1 == high2 or not cards1 and not cards2:
+                hand_range = HAND_SIZE
                 high1 = [c[0] for c in h1.get_hand_by('value')]
                 high2 = [c[0] for c in h2.get_hand_by('value')]
 
@@ -270,8 +273,9 @@ class Game:
     def run(self):
         global PLAYER_ONE
         global PLAYER_TWO
+        global TIE
         while self.HAND < ROUNDS:
-            print 'Dealing hand %d' % self.HAND
+            print 'Dealing hand %d' % (self.HAND + 1)
 
             hand = self._load_hand()
             p1, p2 = self._split_hands(hand)
@@ -283,8 +287,10 @@ class Game:
             PLAYER_ONE += s1
             PLAYER_TWO += s2
 
+            if s1 == s2:
+                TIE += 1
             print '%s, %s' % (h1.result, h2.result)
-            print 'P1 %d (%d), P2 %d (%d)' % (PLAYER_ONE, s1, PLAYER_TWO, s2)
+            print 'P1 %d (%d), P2 %d (%d) [tied: %d]' % (PLAYER_ONE, s1, PLAYER_TWO, s2, TIE)
             print ''
 
             self._next_hand()
