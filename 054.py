@@ -54,7 +54,7 @@ class Hand:
             '_straight', '_three_kind', '_two_pairs', '_one_pair', '_high_card']
         self.hand = self._convert_hand(hand)
         self.message = '%s: %s'
-        self.score_name = 'HighCard'
+        self.score_name = 'High Card'
 
     def _convert_hand(self, hand):
         # converts the hand into a readable list of tuples
@@ -104,7 +104,7 @@ class Hand:
             if len(p) == 2:
                 obj = {'card_values': list(set([v[0] for v in p]))}
                 score = OnePair
-                self.score_name = 'OnePair'
+                self.score_name = 'One Pair'
                 break
         return score, obj
 
@@ -122,12 +122,21 @@ class Hand:
                     obj = {}
                     obj.update({'card_values': temp})
                     score = TwoPairs
-                    self.score_name = 'TwoPairs'
+                    self.score_name = 'Two Pairs'
                     break
         return score, obj
 
     def _three_kind(self):
         obj, score = (None, 0)
+        hand = self.get_hand_by('value')
+        groups = groupby(hand, itemgetter(0))
+        pairs = [[item for item in data] for (_, data) in groups]
+        for p in pairs:
+            if len(p) == 3:
+                obj = {'card_values': list(set([v[0] for v in p]))}
+                score = ThreeKind
+                self.score_name = 'Three of a Kind'
+                break
         return score, obj
 
     def _straight(self):
@@ -153,6 +162,21 @@ class Hand:
 
     def _full_house(self):
         obj, score = (None, 0)
+        hand = self.get_hand_by('value')
+        groups = groupby(hand, itemgetter(0))
+        pairs = [[item for item in data] for (_, data) in groups]
+        found, temp = (0, [])
+        if len(pairs) == 2:
+            for p in pairs:
+                if len(p) == 3 or len(p) == 2:
+                    found += 1
+                    temp.append(p[0][0])
+                    if found == 2:
+                        obj = {}
+                        obj.update({'card_values': temp})
+                        score = FullHouse
+                        self.score_name = 'Full House'
+                        break
         return score, obj
 
     def _four_kind(self):
@@ -180,7 +204,7 @@ class Hand:
                     obj = {}
                     obj.update({'card_values': groups[0]})
                     score = StraightFlush
-                    self.score_name = 'StraightFlush'
+                    self.score_name = 'Straight Flush'
 
         return score, obj
 
@@ -190,7 +214,7 @@ class Hand:
         seed = [c[1] for c in self.hand]
         if len(set(seed)) == 1 and sorted(values) == sorted([10, 11, 12, 13, 14]):
             score = RoyalFlush
-            self.score_name = 'RoyalFlush'
+            self.score_name = 'Royal Flush'
         return score, None
 
 
